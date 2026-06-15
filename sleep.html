@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>快眠サポート</title>
+<style>
+  :root {
+    --bg: #0f172a; --card: #1e293b; --card2: #263249;
+    --accent: #6366f1; --accent2: #818cf8;
+    --text: #e2e8f0; --muted: #94a3b8; --border: #334155;
+    --success: #22c55e; --warn: #f59e0b;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; min-height: 100vh; }
+
+  /* === TOPBAR === */
+  .topbar {
+    background: var(--card); border-bottom: 1px solid var(--border);
+    padding: 12px 20px; display: flex; align-items: center;
+    justify-content: space-between; position: sticky; top: 0; z-index: 10;
+    flex-wrap: wrap; gap: 8px;
+  }
+  .logo { font-size: 18px; font-weight: 700; color: var(--accent2); flex-shrink: 0; }
+  .nav { display: flex; flex-wrap: wrap; gap: 6px; }
+  .nav button {
+    background: none; border: 1px solid var(--border); border-radius: 6px;
+    color: var(--text); padding: 4px 14px; font-size: 14px; cursor: pointer;
+    transition: background .2s, border-color .2s;
+  }
+  .nav button:hover, .nav button.active { background: var(--card2); border-color: var(--accent); }
+
+  /* === PAGES === */
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* === CONTAINER === */
+  .container { max-width: 780px; margin: 0 auto; padding: 20px 14px; }
+
+  /* === ALERT === */
+  .alert { padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; font-size: 14px; cursor: pointer; }
+  .alert-warn { background: rgba(245,158,11,.1); border: 1px solid rgba(245,158,11,.3); color: var(--warn); }
+  .alert-info { background: rgba(99,102,241,.1); border: 1px solid rgba(99,102,241,.3); color: var(--accent2); }
+
+  /* === WEATHER CARD === */
+  .weather-card {
+    background: linear-gradient(135deg, #1e3a5f, #263249);
+    border: 1px solid #2d4a6e; border-radius: 14px;
+    padding: 20px; margin-bottom: 20px;
+    display: flex; align-items: center; gap: 20px; flex-wrap: wrap;
+  }
+  .weather-icon { font-size: 50px; }
+  .weather-info h2 { font-size: 32px; font-weight: 700; }
+  .weather-info p { color: var(--muted); margin-top: 4px; font-size: 14px; }
+  .weather-tags { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+  .tag {
+    background: rgba(99,102,241,.2); color: var(--accent2);
+    border: 1px solid rgba(99,102,241,.4);
+    border-radius: 20px; padding: 3px 10px; font-size: 12px;
+  }
+
+  /* === FORM CARD === */
+  .form-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 14px; padding: 24px; margin-bottom: 20px;
+  }
+  .section-title { font-size: 16px; font-weight: 600; margin-bottom: 14px; color: var(--accent2); }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media(max-width:560px){ .form-grid { grid-template-columns: 1fr; } }
+  .form-group { display: flex; flex-direction: column; gap: 5px; }
+  .form-group.full { grid-column: 1 / -1; }
+  label { font-size: 12px; color: var(--muted); font-weight: 500; }
+  input[type=text], input[type=number], input[type=password], select, textarea {
+    background: var(--bg); border: 1px solid var(--border); border-radius: 7px;
+    color: var(--text); padding: 9px 11px; font-size: 14px; width: 100%; outline: none;
+    transition: border-color .2s;
+  }
+  input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+  textarea { resize: vertical; min-height: 68px; }
+
+  /* === CLOTHING === */
+  .clothing-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 8px; margin-top: 6px; }
+  .clothing-btn {
+    background: var(--bg); border: 1px solid var(--border); border-radius: 9px;
+    padding: 9px 6px; text-align: center; cursor: pointer;
+    transition: all .2s; font-size: 12px; color: var(--muted);
+  }
+  .clothing-btn:hover { border-color: var(--accent); color: var(--text); }
+  .clothing-btn.selected { border-color: var(--accent); background: rgba(99,102,241,.15); color: var(--text); }
+  .clothing-btn .emoji { font-size: 22px; display: block; margin-bottom: 3px; }
+
+  /* === BLANKET === */
+  .blanket-body { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+  .body-section { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .body-part-label { width: 64px; text-align: right; font-size: 12px; color: var(--muted); flex-shrink: 0; }
+  .coverage-options { display: flex; gap: 6px; flex-wrap: wrap; }
+  .cov-btn {
+    background: var(--bg); border: 1px solid var(--border); border-radius: 5px;
+    padding: 4px 10px; font-size: 12px; cursor: pointer; color: var(--muted);
+    transition: all .2s;
+  }
+  .cov-btn:hover { border-color: var(--accent2); }
+  .cov-btn.selected { background: rgba(99,102,241,.2); border-color: var(--accent); color: var(--text); }
+
+  /* === AC ROW === */
+  .ac-row { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
+  .ac-row .form-group { flex: 1; min-width: 120px; }
+
+  /* === BUTTON === */
+  .submit-btn {
+    width: 100%; padding: 13px; background: var(--accent); border: none;
+    border-radius: 9px; color: white; font-size: 15px; font-weight: 600;
+    cursor: pointer; margin-top: 18px; transition: background .2s, transform .1s;
+  }
+  .submit-btn:hover { background: var(--accent2); }
+  .submit-btn:active { transform: scale(.98); }
+  .submit-btn:disabled { opacity: .5; cursor: not-allowed; }
+  .btn-secondary {
+    width: 100%; padding: 11px; background: none; border: 1px solid var(--accent);
+    border-radius: 9px; color: var(--accent2); font-size: 14px; font-weight: 600;
+    cursor: pointer; margin-top: 10px; transition: background .2s;
+  }
+  .btn-secondary:hover { background: rgba(99,102,241,.1); }
+
+  /* === RECOMMENDATION === */
+  .recommendation-card {
+    background: linear-gradient(135deg, #1a2e1a, #1e3b1e);
+    border: 1px solid #2d5a2d; border-radius: 14px;
+    padding: 24px; margin-bottom: 20px; display: none;
+  }
+  .recommendation-card h3 { color: var(--success); margin-bottom: 14px; font-size: 16px; }
+  .rec-text { line-height: 1.85; white-space: pre-wrap; font-size: 14px; }
+
+  /* === QUALITY STARS === */
+  .quality-row { margin-top: 18px; }
+  .quality-row p { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+  .stars { display: flex; gap: 4px; }
+  .star { font-size: 26px; cursor: pointer; opacity: .35; transition: opacity .2s, transform .15s; }
+  .star:hover, .star.active { opacity: 1; transform: scale(1.2); }
+
+  /* === LOADER === */
+  .loader { display: none; text-align: center; padding: 16px; color: var(--muted); font-size: 14px; }
+  .spinner {
+    display: inline-block; width: 20px; height: 20px;
+    border: 3px solid var(--border); border-top-color: var(--accent);
+    border-radius: 50%; animation: spin .8s linear infinite;
+    margin-right: 8px; vertical-align: middle;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* === HISTORY === */
+  .history-list { display: flex; flex-direction: column; gap: 12px; }
+  .history-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 16px 18px;
+  }
+  .history-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 6px; }
+  .history-date { font-size: 15px; font-weight: 600; }
+  .history-quality { color: #f59e0b; }
+  .badges { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+  .badge {
+    background: var(--card2); border: 1px solid var(--border);
+    border-radius: 5px; padding: 2px 9px; font-size: 12px; color: var(--muted);
+  }
+  .badge span { color: var(--text); font-weight: 500; }
+  .rec-toggle { color: var(--accent2); font-size: 12px; cursor: pointer; border: none; background: none; padding: 0; text-decoration: underline; }
+  .rec-body { display: none; margin-top: 10px; background: var(--card2); border-radius: 7px; padding: 12px; font-size: 13px; line-height: 1.8; white-space: pre-wrap; }
+  .empty-msg { text-align: center; color: var(--muted); padding: 50px 0; font-size: 14px; }
+
+  /* === SETTINGS === */
+  .settings-card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 14px; padding: 28px; margin-bottom: 16px;
+  }
+  .hint { font-size: 12px; color: var(--muted); margin-top: 4px; line-height: 1.6; }
+  .save-btn {
+    width: 100%; padding: 12px; background: var(--accent); border: none;
+    border-radius: 9px; color: white; font-size: 15px; font-weight: 600;
+    cursor: pointer; margin-top: 18px; transition: background .2s;
+  }
+  .save-btn:hover { background: var(--accent2); }
+  .success-msg { color: var(--success); font-size: 13px; margin-top: 10px; display: none; text-align: center; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="logo">🌙 快眠サポート</div>
+  <nav class="nav">
+    <button onclick="showPage('home')" id="tab-home" class="active">ホーム</button>
+    <button onclick="showPage('history')" id="tab-history">履歴</button>
+    <button onclick="showPage('settings')" id="tab-settings">設定</button>
+  </nav>
+</div>
+
+<!-- ========== HOME PAGE ========== -->
+<div id="page-home" class="page active">
+<div class="container">
+
+
+  <!-- 天気カード -->
+  <div class="weather-card">
+    <div class="weather-icon" id="weatherIcon">⏳</div>
+    <div class="weather-info">
+      <h2 id="weatherTemp">-- ℃</h2>
+      <p id="weatherDesc">天気情報を取得中...</p>
+      <div class="weather-tags" id="weatherTags"></div>
+    </div>
+  </div>
+
+  <!-- 入力フォーム -->
+  <div class="form-card">
+    <div class="section-title">今夜の睡眠条件を入力</div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>日付</label>
+        <input type="text" id="logDate" readonly>
+      </div>
+      <div class="form-group">
+        <label>室温 (℃)</label>
+        <input type="number" id="roomTemp" placeholder="例: 26" step="0.5">
+      </div>
+      <div class="form-group">
+        <label>室内湿度 (%)</label>
+        <input type="number" id="roomHumidity" placeholder="例: 60" min="0" max="100">
+      </div>
+    </div>
+
+    <!-- エアコン -->
+    <div style="margin-top:18px;">
+      <label style="font-size:12px;color:var(--muted);font-weight:500;">エアコン設定</label>
+      <div class="ac-row" style="margin-top:8px;">
+        <div class="form-group">
+          <label>モード</label>
+          <select id="acMode">
+            <option value="off">使用しない</option>
+            <option value="cool">冷房</option>
+            <option value="heat">暖房</option>
+            <option value="fan">送風</option>
+            <option value="dry">除湿</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>設定温度 (℃)</label>
+          <input type="number" id="acTemp" placeholder="例: 26" step="1" min="16" max="32">
+        </div>
+      </div>
+    </div>
+
+    <!-- 服装 -->
+    <div style="margin-top:18px;">
+      <label style="font-size:12px;color:var(--muted);font-weight:500;">寝るときの服装</label>
+      <div class="clothing-grid">
+        <div class="clothing-btn" data-val="パジャマ(長袖長ズボン)"><span class="emoji">🧥</span>パジャマ 長袖</div>
+        <div class="clothing-btn" data-val="パジャマ(半袖半ズボン)"><span class="emoji">👕</span>パジャマ 半袖</div>
+        <div class="clothing-btn" data-val="Tシャツ+長ズボン"><span class="emoji">👚</span>T+長ズボン</div>
+        <div class="clothing-btn" data-val="Tシャツ+短パン"><span class="emoji">🩳</span>T+短パン</div>
+        <div class="clothing-btn" data-val="タンクトップ+短パン"><span class="emoji">🎽</span>タンクトップ</div>
+        <div class="clothing-btn" data-val="スウェット上下"><span class="emoji">🧣</span>スウェット</div>
+        <div class="clothing-btn" data-val="other"><span class="emoji">✏️</span>その他</div>
+      </div>
+      <input type="text" id="clothingCustom" placeholder="服装を入力" style="margin-top:8px;display:none;">
+    </div>
+
+    <!-- 布団 -->
+    <div style="margin-top:18px;">
+      <label style="font-size:12px;color:var(--muted);font-weight:500;">布団・毛布の掛け方</label>
+      <div class="blanket-body">
+        <div class="body-section">
+          <span class="body-part-label">肩・胸</span>
+          <div class="coverage-options" data-part="shoulders">
+            <div class="cov-btn" data-val="掛ける">掛ける</div>
+            <div class="cov-btn" data-val="掛けない">掛けない</div>
+            <div class="cov-btn" data-val="薄手のみ">薄手のみ</div>
+          </div>
+        </div>
+        <div class="body-section">
+          <span class="body-part-label">お腹・腰</span>
+          <div class="coverage-options" data-part="abdomen">
+            <div class="cov-btn" data-val="掛ける">掛ける</div>
+            <div class="cov-btn" data-val="掛けない">掛けない</div>
+            <div class="cov-btn" data-val="薄手のみ">薄手のみ</div>
+          </div>
+        </div>
+        <div class="body-section">
+          <span class="body-part-label">太もも</span>
+          <div class="coverage-options" data-part="thighs">
+            <div class="cov-btn" data-val="掛ける">掛ける</div>
+            <div class="cov-btn" data-val="掛けない">掛けない</div>
+            <div class="cov-btn" data-val="薄手のみ">薄手のみ</div>
+          </div>
+        </div>
+        <div class="body-section">
+          <span class="body-part-label">足・すね</span>
+          <div class="coverage-options" data-part="feet">
+            <div class="cov-btn" data-val="掛ける">掛ける</div>
+            <div class="cov-btn" data-val="掛けない">掛けない</div>
+            <div class="cov-btn" data-val="薄手のみ">薄手のみ</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- メモ -->
+    <div class="form-group full" style="margin-top:18px;">
+      <label>その他メモ（昨夜の気になった点など）</label>
+      <textarea id="notes" placeholder="例: 暑くて目が覚めた、足が冷えた など"></textarea>
+    </div>
+
+    <button class="submit-btn" id="submitBtn" onclick="submitLog()">今夜の快眠アドバイスをもらう ✨</button>
+  </div>
+
+  <!-- ローディング -->
+  <div class="loader" id="loader"><span class="spinner"></span>分析中です...</div>
+
+  <!-- 推奨カード -->
+  <div class="recommendation-card" id="recCard">
+    <h3>🌙 今夜の快眠アドバイス</h3>
+    <div class="rec-text" id="recText"></div>
+    <div class="quality-row">
+      <p>昨夜の睡眠の質（翌朝に評価してください）</p>
+      <div class="stars" id="stars">
+        <span class="star" data-val="1">⭐</span>
+        <span class="star" data-val="2">⭐</span>
+        <span class="star" data-val="3">⭐</span>
+        <span class="star" data-val="4">⭐</span>
+        <span class="star" data-val="5">⭐</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<!-- ========== HISTORY PAGE ========== -->
+<div id="page-history" class="page">
+<div class="container">
+  <div class="form-card">
+    <div class="section-title">📋 睡眠記録の履歴</div>
+    <div id="historyList" class="history-list"></div>
+  </div>
+</div>
+</div>
+
+<!-- ========== SETTINGS PAGE ========== -->
+<div id="page-settings" class="page">
+<div class="container">
+  <div class="settings-card">
+    <div class="section-title">⚙️ 設定</div>
+    <div class="form-group" style="margin-bottom:18px;">
+      <label>都市名（天気取得用）</label>
+      <input type="text" id="settingCity" placeholder="例: Tokyo, Osaka, Sapporo">
+      <p class="hint">英語表記で入力してください（例: Tokyo / Osaka / Nagoya）</p>
+    </div>
+    <button class="save-btn" onclick="saveSettings()">保存する</button>
+    <div id="saveMsg" class="success-msg">✅ 保存しました</div>
+  </div>
+  <div class="settings-card">
+    <div class="section-title">🗑️ データ管理</div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:14px;">すべての睡眠記録を削除します。この操作は元に戻せません。</p>
+    <button class="btn-secondary" onclick="clearAllData()" style="margin-top:0;border-color:var(--warn);color:var(--warn);">すべての記録を削除する</button>
+  </div>
+</div>
+</div>
+
+<script>
+// ============================================================
+// STATE
+// ============================================================
+let weatherData = null;
+let blanketData = {};
+let selectedClothing = '';
+let lastLogId = null;
+
+// ============================================================
+// SETTINGS (localStorage)
+// ============================================================
+function getSetting(key, def) {
+  return localStorage.getItem('sleep_' + key) ?? def;
+}
+function setSetting(key, val) {
+  localStorage.setItem('sleep_' + key, val);
+}
+function deleteSetting(key) {
+  localStorage.removeItem('sleep_' + key);
+}
+
+// ============================================================
+// PAGE NAVIGATION
+// ============================================================
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+  if (name === 'history') renderHistory();
+  if (name === 'settings') loadSettingsForm();
+}
+
+// ============================================================
+// INIT
+// ============================================================
+window.addEventListener('DOMContentLoaded', () => {
+  // Set date
+  document.getElementById('logDate').value = new Date().toLocaleDateString('ja-JP', {year:'numeric',month:'2-digit',day:'2-digit'}).replace(/\//g,'-');
+
+  // Weather
+  loadWeather();
+
+  // Clothing buttons
+  document.querySelectorAll('.clothing-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.clothing-btn').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      selectedClothing = btn.dataset.val;
+      document.getElementById('clothingCustom').style.display = selectedClothing === 'other' ? 'block' : 'none';
+    });
+  });
+
+  // Blanket buttons
+  document.querySelectorAll('.coverage-options').forEach(group => {
+    group.querySelectorAll('.cov-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        group.querySelectorAll('.cov-btn').forEach(b => b.classList.remove('selected'));
+        btn.classList.add('selected');
+        blanketData[group.dataset.part] = btn.dataset.val;
+      });
+    });
+  });
+
+  // Stars
+  document.querySelectorAll('.star').forEach(star => {
+    star.addEventListener('click', () => {
+      const val = parseInt(star.dataset.val);
+      document.querySelectorAll('.star').forEach((s, i) => s.classList.toggle('active', i < val));
+      if (lastLogId) {
+        const logs = getLogs();
+        const log = logs.find(l => l.id === lastLogId);
+        if (log) { log.quality = val; saveLogs(logs); }
+      }
+    });
+  });
+});
+
+// ============================================================
+// WEATHER
+// ============================================================
+async function loadWeather() {
+  const city = getSetting('city', 'Tokyo');
+  const icons = {'Sunny':'☀️','Clear':'🌙','Cloudy':'☁️','Overcast':'☁️','Rain':'🌧️','Drizzle':'🌦️','Thunder':'⛈️','Snow':'❄️','Mist':'🌫️','Fog':'🌫️','Partly':'⛅'};
+  try {
+    const res = await fetch(`https://wttr.in/${encodeURIComponent(city)}?format=j1`, {headers:{'Accept':'application/json'}});
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    const cur = data.current_condition[0];
+    weatherData = {
+      temp: parseFloat(cur.temp_C),
+      feelsLike: parseFloat(cur.FeelsLikeC),
+      humidity: parseFloat(cur.humidity),
+      desc: cur.weatherDesc[0].value
+    };
+    const iconKey = Object.keys(icons).find(k => weatherData.desc.includes(k)) || '';
+    document.getElementById('weatherIcon').textContent = icons[iconKey] || '🌡️';
+    document.getElementById('weatherTemp').textContent = weatherData.temp + '℃';
+    document.getElementById('weatherDesc').textContent = weatherData.desc;
+    document.getElementById('weatherTags').innerHTML =
+      `<span class="tag">体感 ${weatherData.feelsLike}℃</span><span class="tag">湿度 ${weatherData.humidity}%</span>`;
+  } catch(e) {
+    document.getElementById('weatherDesc').textContent = '天気データ取得失敗（インターネット接続を確認）';
+    weatherData = null;
+  }
+}
+
+// ============================================================
+// LOGS (localStorage)
+// ============================================================
+function getLogs() {
+  return JSON.parse(localStorage.getItem('sleep_logs') || '[]');
+}
+function saveLogs(logs) {
+  localStorage.setItem('sleep_logs', JSON.stringify(logs));
+}
+
+// ============================================================
+// SUBMIT LOG
+// ============================================================
+async function submitLog() {
+  const clothing = selectedClothing === 'other'
+    ? (document.getElementById('clothingCustom').value || '未入力')
+    : (selectedClothing || '未入力');
+
+  const partLabels = {shoulders:'肩・胸', abdomen:'お腹・腰', thighs:'太もも', feet:'足・すね'};
+  const blanketDesc = Object.entries(blanketData).map(([p, v]) => `${partLabels[p]}: ${v}`).join('、') || '未入力';
+
+  const logEntry = {
+    id: Date.now(),
+    date: document.getElementById('logDate').value,
+    city: getSetting('city', 'Tokyo'),
+    outdoorTemp: weatherData?.temp ?? null,
+    outdoorHumidity: weatherData?.humidity ?? null,
+    roomTemp: document.getElementById('roomTemp').value || null,
+    roomHumidity: document.getElementById('roomHumidity').value || null,
+    acMode: document.getElementById('acMode').value,
+    acTemp: document.getElementById('acTemp').value || null,
+    clothing,
+    blanket: blanketDesc,
+    notes: document.getElementById('notes').value,
+    recommendation: '',
+    quality: null
+  };
+
+  document.getElementById('submitBtn').disabled = true;
+  document.getElementById('loader').style.display = 'block';
+  document.getElementById('recCard').style.display = 'none';
+
+  const recommendation = getRuleBasedRecommendation(logEntry);
+  logEntry.recommendation = recommendation;
+  lastLogId = logEntry.id;
+
+  const logs = getLogs();
+  logs.unshift(logEntry);
+  if (logs.length > 60) logs.splice(60);
+  saveLogs(logs);
+
+  document.getElementById('recText').textContent = recommendation;
+  document.getElementById('recCard').style.display = 'block';
+  document.getElementById('recCard').scrollIntoView({behavior:'smooth'});
+  document.getElementById('submitBtn').disabled = false;
+  document.getElementById('loader').style.display = 'none';
+}
+
+// ============================================================
+// RULE-BASED RECOMMENDATION (高精度版)
+// ============================================================
+function getRuleBasedRecommendation(log) {
+  const outdoorTemp = log.outdoorTemp != null ? parseFloat(log.outdoorTemp) : null;
+  const roomTemp    = log.roomTemp    != null ? parseFloat(log.roomTemp)    : null;
+  const roomHumid   = log.roomHumidity != null ? parseFloat(log.roomHumidity) : null;
+  const outdoorHumid = log.outdoorHumidity != null ? parseFloat(log.outdoorHumidity) : null;
+  const humidity    = roomHumid ?? outdoorHumid;
+  const temp        = roomTemp ?? outdoorTemp; // 室温優先
+  const acMode      = log.acMode || 'off';
+  const acTemp      = log.acTemp ? parseFloat(log.acTemp) : null;
+  const clothing    = log.clothing || '';
+  const blanket     = log.blanket  || '';
+  const notes       = log.notes    || '';
+  const sections    = [];
+
+  // ── ① 服装アドバイス ──────────────────────────────
+  let clothingAdvice = '';
+  if (temp !== null) {
+    if (temp >= 29) {
+      clothingAdvice = 'タンクトップ＋短パン（薄手・通気性素材）が最適です。';
+      if (clothing.includes('長袖') || clothing.includes('スウェット') || clothing.includes('長ズボン'))
+        clothingAdvice += '\n　⚠ 入力された服装は暑すぎる可能性があります。薄手に変更をおすすめします。';
+    } else if (temp >= 26) {
+      clothingAdvice = 'パジャマ半袖＋半ズボン、またはTシャツ＋短パンが適切です。';
+      if (clothing.includes('スウェット'))
+        clothingAdvice += '\n　⚠ スウェットは少し暑いかもしれません。半袖への変更を検討してください。';
+    } else if (temp >= 22) {
+      clothingAdvice = 'パジャマ長袖＋長ズボン、またはTシャツ＋長ズボンが適切です。';
+      if (clothing.includes('タンクトップ'))
+        clothingAdvice += '\n　⚠ タンクトップだと明け方に冷える可能性があります。';
+    } else if (temp >= 16) {
+      clothingAdvice = 'スウェット上下やパジャマ長袖など、少し厚手の服装が適切です。';
+    } else {
+      clothingAdvice = '厚手のパジャマやスウェット上下に加え、靴下の着用もおすすめです。';
+    }
+  } else {
+    clothingAdvice = '室温データがないため、現在の体感温度に合わせた服装を選んでください。';
+  }
+  sections.push('【① 服装について】\n' + clothingAdvice);
+
+  // ── ② 布団の掛け方アドバイス ─────────────────────
+  let blanketAdvice = '';
+  if (temp !== null) {
+    if (temp >= 29) {
+      blanketAdvice =
+        '・肩・胸　→ 掛けない（暑いため不要）\n' +
+        '・お腹・腰 → 薄手のタオルケットのみ（内臓冷え防止）\n' +
+        '・太もも　→ 掛けない\n' +
+        '・足・すね → 掛けない（むくみ予防に足を少し高くすると◎）';
+    } else if (temp >= 26) {
+      blanketAdvice =
+        '・肩・胸　→ 薄手のタオルケット\n' +
+        '・お腹・腰 → タオルケットをしっかり掛ける（冷え防止）\n' +
+        '・太もも　→ 薄手のみ\n' +
+        '・足・すね → お好みで（冷える方は掛ける）';
+    } else if (temp >= 22) {
+      blanketAdvice =
+        '・肩・胸　→ 掛け布団を肩までしっかり\n' +
+        '・お腹・腰 → 掛ける（腹巻き代わりに重要）\n' +
+        '・太もも　→ 掛ける\n' +
+        '・足・すね → 掛ける（末端冷え性の方は特に重要）';
+    } else {
+      blanketAdvice =
+        '・全身　→ 掛け布団をしっかり掛ける\n' +
+        '・肩まわり → 肩が出ないよう意識する\n' +
+        '・足　 → 靴下着用＋布団でしっかり保温';
+    }
+
+    // 入力された布団の掛け方との差異チェック
+    const feedbacks = [];
+    if (temp >= 27) {
+      if (blanket.includes('肩・胸: 掛ける')) feedbacks.push('肩・胸は掛けない方が熱がこもりにくくなります');
+      if (blanket.includes('足・すね: 掛ける')) feedbacks.push('足は出した方が体温が下がり寝つきやすくなります');
+    } else if (temp <= 20) {
+      if (blanket.includes('肩・胸: 掛けない')) feedbacks.push('気温が低いので肩まで布団を掛けることをおすすめします');
+      if (blanket.includes('足・すね: 掛けない')) feedbacks.push('足が冷えると眠れなくなるので足にも布団を掛けましょう');
+    }
+    if (feedbacks.length > 0) {
+      blanketAdvice += '\n\n　💡 入力内容へのフィードバック：\n　・' + feedbacks.join('\n　・');
+    }
+  } else {
+    blanketAdvice = '室温データがないため標準的な推奨を表示します。\nお腹・腰は最低限薄手のものを掛け、肩の冷えにも注意してください。';
+  }
+  sections.push('【② 布団・毛布の掛け方（推奨）】\n' + blanketAdvice);
+
+  // ── ③ エアコン設定アドバイス ─────────────────────
+  let acAdvice = '';
+  if (temp !== null) {
+    if (temp >= 29) {
+      if (acMode === 'off') {
+        acAdvice = '⚠ 室温が非常に高いです。熱中症リスクがあるため冷房の使用を強くおすすめします。\n設定温度: 26〜27℃、風向きは天井向き、就寝2〜3時間後タイマーをセット。';
+      } else if (acMode === 'cool') {
+        const ideal = 26;
+        if (acTemp && acTemp < 24) acAdvice = `冷房${acTemp}℃は冷えすぎる可能性があります。26〜27℃を推奨します。`;
+        else if (acTemp && acTemp > 28) acAdvice = `冷房${acTemp}℃はやや高めです。26〜27℃に下げると睡眠の質が上がります。`;
+        else acAdvice = `冷房${acTemp ?? ideal}℃設定は適切です。風が直接当たらないよう向きを調整し、3時間タイマーをセットしましょう。`;
+      } else {
+        acAdvice = '気温が高いため、冷房モードの使用をおすすめします（26〜27℃設定）。';
+      }
+    } else if (temp >= 26) {
+      if (acMode === 'off') {
+        acAdvice = '除湿または送風モードの使用がおすすめです。扇風機を使う場合は体に直接当てず、壁に向けて使用しましょう。';
+      } else if (acMode === 'cool') {
+        acAdvice = `冷房モードの場合、${acTemp ?? 27}℃設定で適切です。寝冷えを防ぐためタイマー（2〜3時間）を活用してください。`;
+      } else if (acMode === 'dry') {
+        acAdvice = '除湿モードは正しい選択です。湿度を50〜60%に保つと快適に眠れます。';
+      } else {
+        acAdvice = '送風または除湿モードが適切です。';
+      }
+    } else if (temp >= 20) {
+      if (acMode === 'cool') {
+        acAdvice = `気温${temp}℃では冷房は不要な可能性があります。窓を開けて換気するか、送風モードを試してみてください。`;
+      } else {
+        acAdvice = 'この気温ではエアコンなしで快適に眠れる可能性が高いです。窓を少し開けて換気しましょう。';
+      }
+    } else {
+      if (acMode === 'heat') {
+        acAdvice = `暖房${acTemp ?? 20}℃設定は適切です。乾燥しやすいので加湿器の併用をおすすめします。就寝後はタイマーで切るか、20℃程度に設定してください。`;
+      } else if (acMode === 'off') {
+        acAdvice = '気温が低いため、暖房（20〜22℃）の使用を検討してください。毛布を追加するだけでも効果的です。';
+      } else {
+        acAdvice = '気温が低いため暖房モードを推奨します（20〜22℃設定）。';
+      }
+    }
+  } else {
+    acAdvice = '室温データがないため個別の推奨が難しいですが、一般的には冷房26〜27℃、暖房20〜22℃が睡眠に適しています。';
+  }
+  sections.push('【③ エアコン・空調の設定】\n' + acAdvice);
+
+  // ── ④ 温度・湿度の調整 ────────────────────────────
+  let envAdvice = '';
+  const envLines = [];
+  if (roomTemp !== null) {
+    if (roomTemp >= 29)      envLines.push(`室温${roomTemp}℃は高すぎます。理想は25〜26℃です。冷房・換気で下げましょう。`);
+    else if (roomTemp >= 27) envLines.push(`室温${roomTemp}℃はやや高めです。26℃前後を目標に調整しましょう。`);
+    else if (roomTemp >= 24) envLines.push(`室温${roomTemp}℃は快適な範囲です。そのまま維持しましょう。`);
+    else if (roomTemp >= 18) envLines.push(`室温${roomTemp}℃は適切です。寒い場合は毛布を足しましょう。`);
+    else                     envLines.push(`室温${roomTemp}℃は低めです。暖房や毛布で18〜22℃を目指しましょう。`);
+  }
+  if (humidity !== null) {
+    if (humidity >= 80)      envLines.push(`湿度${humidity}%は非常に高いです。除湿器や除湿モードで60%以下に下げましょう。`);
+    else if (humidity >= 70) envLines.push(`湿度${humidity}%はやや高めです。除湿または換気で65%以下を目指しましょう。`);
+    else if (humidity >= 50) envLines.push(`湿度${humidity}%は快適な範囲（50〜65%）です。そのまま維持しましょう。`);
+    else if (humidity >= 35) envLines.push(`湿度${humidity}%はやや乾燥しています。加湿器や水を張った容器で50%以上を目指しましょう。`);
+    else                     envLines.push(`湿度${humidity}%は非常に乾燥しています。加湿器を使用して喉や肌を守りましょう。`);
+  }
+  envAdvice = envLines.length > 0 ? envLines.join('\n') : '室温・湿度データが入力されていません。温度計・湿度計の使用をおすすめします。';
+  sections.push('【④ 室温・湿度の調整】\n' + envAdvice);
+
+  // ── ⑤ 昨夜のメモへの対応 ─────────────────────────
+  const noteLines = [];
+  if (notes) {
+    if (/暑|寝付けない|寝れない|眠れない/.test(notes))
+      noteLines.push('就寝1時間前からエアコンで室温を下げておくと寝つきやすくなります。');
+    if (/冷え|寒|足が/.test(notes))
+      noteLines.push('足元の冷えには湯たんぽ（就寝前のみ）や靴下が有効です。特に足首を温めると血行が改善します。');
+    if (/目が覚め|中途覚醒|何度も/.test(notes))
+      noteLines.push('夜中に目が覚める原因として室温変化が考えられます。タイマーオフ後の温度変化に注意しましょう。');
+    if (/蒸し|ジメジメ|汗/.test(notes))
+      noteLines.push('寝汗が多い場合は吸湿性の高いパジャマ（綿素材）に変えると改善することがあります。');
+    if (/乾燥|のど|鼻/.test(notes))
+      noteLines.push('乾燥対策には加湿器を枕元から1m以上離して使用してください。');
+  }
+  if (noteLines.length > 0) {
+    sections.push('【⑤ 昨夜のメモへの改善提案】\n' + noteLines.map(l => '・' + l).join('\n'));
+  }
+
+  // ── ⑥ 快眠のワンポイントアドバイス ──────────────
+  const tips = [
+    '就寝1〜2時間前に38〜40℃のぬるめの入浴で深部体温を下げると眠りやすくなります。',
+    'スマホやPCは就寝30分前には手放しましょう。ブルーライトが睡眠ホルモン（メラトニン）を抑制します。',
+    '起床時刻を毎日一定にすると体内時計が整い、自然と眠くなる時間が定まります。',
+    '朝起きたらまずカーテンを開けて日光を浴びましょう。体内時計のリセットに効果的です。',
+  ];
+  const tipOfDay = tips[new Date().getDay() % tips.length];
+  sections.push('【⑥ 今日の快眠ポイント】\n・' + tipOfDay);
+
+  return sections.join('\n\n');
+}
+
+// ============================================================
+// HISTORY
+// ============================================================
+function renderHistory() {
+  const logs = getLogs();
+  const container = document.getElementById('historyList');
+  if (logs.length === 0) {
+    container.innerHTML = '<div class="empty-msg">まだ記録がありません。<br>ホームから今夜の睡眠条件を入力してください。</div>';
+    return;
+  }
+
+  container.innerHTML = logs.map(log => {
+    const stars = log.quality ? '⭐'.repeat(log.quality) : '未評価';
+    const badges = [
+      log.outdoorTemp != null ? `<div class="badge">屋外気温 <span>${log.outdoorTemp}℃</span></div>` : '',
+      log.outdoorHumidity != null ? `<div class="badge">湿度 <span>${log.outdoorHumidity}%</span></div>` : '',
+      log.roomTemp ? `<div class="badge">室温 <span>${log.roomTemp}℃</span></div>` : '',
+      log.acMode !== 'off' ? `<div class="badge">エアコン <span>${log.acMode}</span></div>` : '',
+      `<div class="badge">服装 <span>${log.clothing}</span></div>`
+    ].join('');
+
+    const recHtml = log.recommendation
+      ? `<button class="rec-toggle" onclick="toggleRec(this)">▶ アドバイスを見る</button>
+         <div class="rec-body">${escHtml(log.recommendation)}</div>`
+      : '';
+
+    return `<div class="history-card">
+      <div class="history-header">
+        <span class="history-date">${log.date}</span>
+        <span class="history-quality">${stars}</span>
+      </div>
+      <div class="badges">${badges}</div>
+      ${log.blanket ? `<div style="font-size:12px;color:var(--muted);margin-bottom:4px;">布団: ${escHtml(log.blanket)}</div>` : ''}
+      ${log.notes ? `<div style="font-size:12px;color:var(--muted);margin-bottom:6px;">メモ: ${escHtml(log.notes)}</div>` : ''}
+      ${recHtml}
+    </div>`;
+  }).join('');
+}
+
+function toggleRec(btn) {
+  const body = btn.nextElementSibling;
+  const open = body.style.display === 'block';
+  body.style.display = open ? 'none' : 'block';
+  btn.textContent = open ? '▶ アドバイスを見る' : '▼ アドバイスを閉じる';
+}
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+}
+
+// ============================================================
+// SETTINGS
+// ============================================================
+function loadSettingsForm() {
+  document.getElementById('settingCity').value = getSetting('city', 'Tokyo');
+}
+
+function saveSettings() {
+  setSetting('city', document.getElementById('settingCity').value.trim() || 'Tokyo');
+  const msg = document.getElementById('saveMsg');
+  msg.style.display = 'block';
+  setTimeout(() => msg.style.display = 'none', 2500);
+  loadWeather();
+}
+
+function clearAllData() {
+  if (confirm('すべての睡眠記録を削除しますか？この操作は元に戻せません。')) {
+    const city = getSetting('city', 'Tokyo');
+    const apiKey = getSetting('apiKey', '');
+    localStorage.clear();
+    setSetting('city', city);
+    setSetting('apiKey', apiKey);
+    alert('記録を削除しました。');
+  }
+}
+</script>
+</body>
+</html>
