@@ -165,6 +165,8 @@
   .badge span { color: var(--text); font-weight: 500; }
   .rec-toggle { color: var(--accent2); font-size: 12px; cursor: pointer; border: none; background: none; padding: 0; text-decoration: underline; }
   .rec-body { display: none; margin-top: 10px; background: var(--card2); border-radius: 7px; padding: 12px; font-size: 13px; line-height: 1.8; white-space: pre-wrap; }
+  .del-btn { background: none; border: 1px solid #ef4444; border-radius: 5px; color: #ef4444; font-size: 11px; padding: 2px 8px; cursor: pointer; transition: background .2s; }
+  .del-btn:hover { background: rgba(239,68,68,.15); }
   .empty-msg { text-align: center; color: var(--muted); padding: 50px 0; font-size: 14px; }
 
   /* === SETTINGS === */
@@ -741,6 +743,7 @@ function renderHistory() {
       <div class="history-header">
         <span class="history-date">${log.date}</span>
         <span class="history-quality">${stars}</span>
+        <button class="del-btn" onclick="deleteLog(${log.id})">🗑 削除</button>
       </div>
       <div class="badges">${badges}</div>
       ${log.blanket ? `<div style="font-size:12px;color:var(--muted);margin-bottom:4px;">布団: ${escHtml(log.blanket)}</div>` : ''}
@@ -748,6 +751,13 @@ function renderHistory() {
       ${recHtml}
     </div>`;
   }).join('');
+}
+
+function deleteLog(id) {
+  if (!confirm('この記録を削除しますか？')) return;
+  const logs = getLogs().filter(l => l.id !== id);
+  saveLogs(logs);
+  renderHistory();
 }
 
 function toggleRec(btn) {
